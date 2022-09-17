@@ -17,7 +17,8 @@ class TokenAuthMiddleware:
         self.app = app
 
     async def __call__(self, scope, receive, send):
-        token=str(dict(scope['headers'])[b'token'])[2:-1]
-        scope['user'] = await get_user(token)
+        if b'token' in dict(scope['headers']): 
+            token=str(dict(scope['headers'])[b'token'])[2:-1]
+            scope['user'] = await get_user(token)
 
         return await self.app(scope, receive, send)

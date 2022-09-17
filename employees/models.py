@@ -5,7 +5,7 @@ from django.db.models.signals import post_save
 from django.dispatch import receiver
 from rest_framework.authtoken.models import Token
 from django.contrib.auth import get_user_model
-
+from django.core.cache import cache
 @receiver(post_save, sender=settings.AUTH_USER_MODEL)
 def create_auth_token(sender, instance=None, created=False, **kwargs):
     if created:
@@ -36,7 +36,7 @@ class User(AbstractBaseUser):
     email=models.EmailField(unique=True)
     firstName=models.CharField(max_length=40)
     secondName=models.CharField(max_length=40)
-    online=models.BooleanField(default=False)
+    # online=models.BooleanField(default=False)
     EMAIL_FIELD='email'
     USERNAME_FIELD='email'
     REQUIRED_FIELDS=['firstName','secondName']
@@ -44,6 +44,10 @@ class User(AbstractBaseUser):
     objects=UserManager()
 
     
+    def online(self):
+        key='connections-'+str(self.id)
+        count=cache.get(key,0)        
+        return count>0
     def has_perm(self,perm,obj=None):
         return self.is_superuser
 
@@ -65,7 +69,3 @@ class AttendRecord(models.Model):
     time=models.DateTimeField(auto_now_add=True)
     type=models.BooleanField()
 
-
-class MACAdders(models.Model):
-    address=models.CharField(max_length=20)
-    name=models.CharField(max_length=50)

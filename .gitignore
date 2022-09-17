@@ -1,3 +1,7 @@
 db.sqlie3
 venv/
 */__pycache__/
+tests.py
+rundocker.bat
+dist/
+build/

@@ -36,10 +36,3 @@ class ReadEmployeeSerializer(ModelSerializer):
         model=Employee
         fields=['email','firstName','secondName','start','end','online','token','id','userID']
 
-
-
-class MACAddressSerilizer(ModelSerializer):
-
-    class Meta:
-        model=MACAdders
-        fields='__all__'

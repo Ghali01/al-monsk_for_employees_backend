@@ -3,10 +3,11 @@ from rest_framework.views import APIView
 from rest_framework.authentication import TokenAuthentication
 from rest_framework.permissions import IsAuthenticated
 from rest_framework.response import Response
-from .serializers import CreateEmployeeSerializer, MACAddressSerilizer,ReadEmployeeSerializer,AttendRecordSerializer
-from .models import AttendRecord,Employee,MACAdders
-from drf_yasg.utils import swagger_auto_schema
-from drf_yasg import openapi
+from .serializers import CreateEmployeeSerializer,ReadEmployeeSerializer,AttendRecordSerializer
+from .models import AttendRecord,Employee
+from django.utils import timezone
+from calendar import monthrange
+from django.shortcuts import get_object_or_404
 class CreateEmployeeView(APIView):
     
 
@@ -34,7 +35,6 @@ class EmployeeAttendRecordsView(ListAPIView):
     serializer_class=AttendRecordSerializer
     queryset=AttendRecord.objects.all()
 
-    dateParm=openapi.Parameter('date',in_=openapi.IN_QUERY,type=openapi.TYPE_STRING)
 
     def filter_queryset(self, queryset):
 
@@ -42,20 +42,36 @@ class EmployeeAttendRecordsView(ListAPIView):
         if 'date' in self.request.GET:
             queryset=queryset.filter(time__date=self.request.GET['date']) 
         return queryset
-    @swagger_auto_schema(manual_parameters=[dateParm])
     def get(self, request, *args, **kwargs):
         return super().get(request, *args, **kwargs)
 
-class AddMacView(CreateAPIView):
-    serializer_class=MACAddressSerilizer
-
-
-
-class MacAddressesListView(ListAPIView):
-    queryset=MACAdders.objects.all()
-    serializer_class=MACAddressSerilizer
 
 class ProfileDataAdminView(RetrieveAPIView):
     queryset=Employee.objects.all()
     serializer_class=ReadEmployeeSerializer
     
+
+class EmployeeAttendInMonthView(APIView):
+
+
+    def get(self,request,employeeID,year,month):
+        employee=get_object_or_404(Employee,id=employeeID)
+        startAsDate=timezone.datetime.combine(timezone.datetime.now().date(),employee.start)
+        endAsDate=timezone.datetime.combine(timezone.datetime.now().date(),employee.end)
+        delta=timezone.timedelta(minutes=30)
+        startBefore=(startAsDate-delta).time()
+        startAfter=(startAsDate+delta).time()
+        endBefore=(endAsDate-delta).time()
+        endAfter=(endAsDate+delta).time()
+        days=monthrange(year,month)[1]
+        attends=[] 
+        for day in range(1,days+1):
+            date=timezone.datetime(year,month,day).date()
+            start=AttendRecord.objects.filter(time__date=date,time__time__gte=startBefore,time__time__lte=startAfter).exists()
+            end=AttendRecord.objects.filter(time__date=date,time__time__gte=endBefore,time__time__lte=endAfter).exists()
+            attends.append({
+                'data':date.strftime('%Y-%m-%d'),
+                'start':start,
+                'end':end,
+            })
+        return Response(attends)
